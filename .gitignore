@@ -1,0 +1,12 @@
+.vscode/
+eigen/
+
+RRAM_validation_data/
+weights_inputs/
+input_data/*
+obj/*
+bin/
+data/*
+ipynb_checkpoints/*
+*.exe
+*.out
