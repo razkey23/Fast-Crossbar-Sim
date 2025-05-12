@@ -7,6 +7,6 @@ input_data/*
 obj/*
 bin/
 data/*
-ipynb_checkpoints/*
+.ipynb_checkpoints/*
 *.exe
 *.out
