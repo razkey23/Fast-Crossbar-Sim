@@ -12,3 +12,7 @@ data/*
 *.out
 pybind11/*
 build/*
+*.so
+oracle/*
+tests/*
+python/xbar_simulator.egg-info/*

@@ -1,7 +1,7 @@
 #include "core/nonlinear_crossbar_solver.h"
 #include "crossbar_model/linear_crossbar_solver.h"
 #include "core/simulation_settings.h"
-
+#include <omp.h>
 #include <iostream>
 
 // Note on the methods in this file:
@@ -405,6 +405,7 @@ Eigen::VectorXf FixedpointSolve(
     int it = 0;
     while (true) {
         // Determine G
+        #pragma omp parallel for 
         for (int i = 0; i < M; i++) {
             for (int j = 0; j < N; j++) {
                 if (access_transistors[i][j]) {
@@ -445,7 +446,7 @@ Eigen::VectorXf FixedpointSolve(
         if (print) { std::cout << "Norm: " << Fv.norm() << std::endl; }
         // std::cout << "Norm: " << Fv.norm() << std::endl;
         // Check convergence
-        if (Fv.norm() < non_linear_fixed_point_criterion | it >= it_max) {
+        if (Fv.norm() < non_linear_fixed_point_criterion * sqrt(M*N) || it >= it_max) {
             if (print) {
                 std::cout << "V:\n" << Vout << std::endl << std::endl;
                 std::cout << "G:\n" << G << std::endl << std::endl;

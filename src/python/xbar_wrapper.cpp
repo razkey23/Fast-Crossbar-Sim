@@ -2,6 +2,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
 #include <pybind11/eigen.h>
+#include <Eigen/Core>
 #include "core/crossbar_simulator.h"
 #include "core/simulation_settings.h"
 
@@ -72,6 +73,16 @@ Eigen::VectorXf numpy_to_eigen_vector(py::array_t<float> array) {
     return result;
 }
 
+// Function to set number of threads for Eigen
+void set_eigen_threads(int num_threads) {
+    Eigen::setNbThreads(num_threads);
+}
+
+// Function to get current number of threads for Eigen
+int get_eigen_threads() {
+    return Eigen::nbThreads();
+}
+
 class PyXbarSimulator {
 private:
     CrossbarSimulator simulator;
@@ -83,8 +94,9 @@ public:
         auto weights_vec = numpy_to_vector2d<bool>(weights);
         simulator.SetRRAM(weights_vec);
     }
-    
-    py::array_t<float> run_inference(py::array_t<float> input, float dt = simulation_time_step) {
+
+   
+    py::array_t<float> run_inference(py::array_t<float> input, float dt = simulation_time_step, std::string method = "fixed-point") {
         if (input.ndim() != 1) {
             throw std::runtime_error("Input must be a 1D array");
         }
@@ -119,7 +131,7 @@ public:
         }
         
         // Apply voltage and get output currents
-        auto currents = simulator.ApplyVoltage(Vguess, Vappwl1, Vappwl2, Vappbl1, Vappbl2, dt);
+        auto currents = simulator.ApplyVoltage(Vguess, Vappwl1, Vappwl2, Vappbl1, Vappbl2, dt, method);
         
         // Calculate MAC outputs (sum of currents per column)
         std::vector<float> mac_outputs(N, 0.0f);
@@ -128,7 +140,8 @@ public:
                 mac_outputs[n] += currents[m][n];
             }
         }
-        
+
+       
         // Convert to numpy array
         std::vector<size_t> shape = {N};
         py::array_t<float> result(shape);
@@ -186,12 +199,20 @@ public:
 PYBIND11_MODULE(xbar_simulator, m) {
     m.doc() = "Python bindings for the memristor crossbar simulator";
     
+    // Add thread control functions
+    m.def("set_eigen_threads", &set_eigen_threads, 
+          "Set the number of threads for Eigen computations",
+          py::arg("num_threads"));
+    m.def("get_eigen_threads", &get_eigen_threads,
+          "Get the current number of threads for Eigen computations");
+    
     py::class_<PyXbarSimulator>(m, "CrossbarSimulator")
         .def(py::init<int, int>(), py::arg("M"), py::arg("N"))
         .def("set_weights", &PyXbarSimulator::set_weights, 
              "Set the weights of the crossbar (boolean matrix)")
+        
         .def("run_inference", &PyXbarSimulator::run_inference, 
-             py::arg("input"), py::arg("dt") = simulation_time_step,
+             py::arg("input"), py::arg("dt") = simulation_time_step, py::arg("method") = "fixed-point",
              "Run a single inference with the given input vector")
         .def("run_multiple_inferences", &PyXbarSimulator::run_multiple_inferences,
              py::arg("input"), py::arg("num_inferences"), py::arg("dt") = simulation_time_step,
@@ -204,4 +225,5 @@ PYBIND11_MODULE(xbar_simulator, m) {
     // Expose simulation settings
     m.attr("voltage_pulse_height") = voltage_pulse_height;
     m.attr("simulation_time_step") = simulation_time_step;
+    m.attr("methods") = py::make_tuple("fixed-point", "NewtonRaphson", "Broyden", "BroydenInv");
 } 

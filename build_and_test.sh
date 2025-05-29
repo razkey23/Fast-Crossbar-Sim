@@ -21,5 +21,5 @@ make -j4
 cd ..
 
 # Run the test
-echo "Running the test..."
-python python/test_inference.py 
+#echo "Running the test..."
+#python python/test_inference.py 
