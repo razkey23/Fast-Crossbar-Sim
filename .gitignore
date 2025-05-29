@@ -1,5 +1,5 @@
 .vscode/
-eigen/
+#eigen/
 
 RRAM_validation_data/
 weights_inputs/
